@@ -1,0 +1,66 @@
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineResource
+metadata:
+  name: awesome-go
+spec:
+  type: git
+  params:
+  - name: revision
+    value: master
+  - name: url
+    value: https://github.com/avelino/awesome-go.git
+---
+apiVersion: tekton.dev/v1alpha1
+kind: Task
+metadata:
+  name: echo
+spec:
+  inputs:
+    resources:
+    - name: workspace
+      type: git
+    params:
+    - name: pathToFile
+      description: The path to the file to cat
+      default: /workspace/workspace/.gitignore
+  steps:
+  - name: run-echo
+    image: bash
+    command:
+    - sh
+    args:
+    - '-c'
+    - 'cat'
+    - '$(inputs.params.pathToFile)'
+---
+apiVersion: tekton.dev/v1alpha1
+kind: Pipeline
+metadata:
+  name: demo-pipeline
+spec:
+  resources:
+  - name: source-repo
+    type: git
+  tasks:
+  - name: task1
+    taskRef:
+      name: echo
+    resources:
+      inputs:
+      - name: workspace
+        resource: source-repo
+    params:
+    - name: pathToFile
+      value: /workspace/awesome-go/.gitignore
+---
+apiVersion: tekton.dev/v1alpha1
+kind: PipelineRun
+metadata:
+  name: demo-pipeline-run-1
+spec:
+  pipelineRef:
+    name: demo-pipeline
+  resources:
+  - name: source-repo
+    resourceRef:
+      name: awesome-go
